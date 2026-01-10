@@ -11,8 +11,14 @@ Récupère les prochains passages pour un arrêt donné.
 - **URL**: `https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring`
 - **Méthode**: `GET`
 - **Paramètres**:
-  - `MonitoringRef`: ID de l'arrêt (ex: `STIF:StopPoint:Q:41178:`)
-  - `LineRef`: (Optionnel) ID de la ligne pour filtrer.
+
+| Nom | Description | Source |
+| :--- | :--- | :--- |
+| **MonitoringRef** | Identifiant de l'arrêt (ex: `STIF:StopPoint:Q:473921:`). Peut être un StopPoint ou un StopArea. | Récupéré **statiquement** depuis les fichiers Open Data (GTFS/Référentiels) au chargement de l'intégration. |
+| **LineRef** | Identifiant de la ligne (ex: `STIF:Line::C01742:`). | Récupéré **statiquement** depuis les fichiers Open Data (Référentiel des lignes) au chargement de l'intégration. |
+
+**Note sur les Destinations :**
+La liste des destinations proposées lors de la configuration est récupérée **dynamiquement** en analysant le trafic en temps réel renvoyé par cet endpoint. Si aucun train n'est affiché pour une destination donnée au moment de la configuration, cette destination n'apparaîtra pas dans la liste.
 
 ### 2. Info Trafic (Navitia)
 Récupère les perturbations et alertes trafic pour une ligne.
