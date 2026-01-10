@@ -51,15 +51,32 @@ class IDFMTimeSensor(IDFMEntity, SensorEntity):
     @property
     def name(self):
         """Return the name of the sensor."""
+        dest = self.config_entry.data.get(CONF_DESTINATION)
+        if dest and "STIF:" in dest:
+            # If it's a STIF ID (new logic), we might want to resolve it to a name
+            # But we don't have the name easily accessible here without extra lookup
+            # The user sees the title of the entry which is "Stop -> Destination Name"
+            # So the entity name can just use the entry title?
+            # Or we can just fallback to using the entry title + num
+            pass
+
+        # Use the stored Destination or Direction
+        target = (
+             self.config_entry.data.get(CONF_DIRECTION)
+             or self.config_entry.data.get(CONF_DESTINATION)
+             or "any"
+        )
+        # If target is a STIF ID, it looks ugly in name, but we live with it for now
+        # or we could rely on HA registry to rename it.
+        # Ideally config_flow should store the name too.
+        # But wait, config_flow sets the Entry Title to "Line - Start -> DestinationName".
+        # Entities usually inherit device name?
+
         return (
             "idfm_"
             + self.config_entry.data[CONF_STOP_NAME]
             + " -> "
-            + (
-                self.config_entry.data[CONF_DIRECTION]
-                or self.config_entry.data[CONF_DESTINATION]
-                or "any"
-            )
+            + target
             + " #"
             + str(self.num)
         )
