@@ -1,6 +1,6 @@
 {
   "domain": "idfm",
-  "name": "Ile de france Mobilite",
+  "name": "IDFM Custom",
   "codeowners": ["@drosocode"],
   "config_flow": true,
   "dependencies": [],
