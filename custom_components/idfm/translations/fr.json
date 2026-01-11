@@ -39,7 +39,9 @@
           }
         }
       },
-      "error": {},
+      "error": {
+        "cannot_fetch_directions": "Impossible de récupérer les directions pour cet arrêt. Veuillez réessayer."
+      },
       "abort": {}
     }
   }

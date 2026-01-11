@@ -39,7 +39,9 @@
         }
       }
     },
-    "error": {},
+    "error": {
+      "cannot_fetch_directions": "Unable to fetch directions for this stop. Please try again."
+    },
     "abort": {}
   }
 }
