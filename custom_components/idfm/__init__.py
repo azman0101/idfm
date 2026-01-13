@@ -11,9 +11,9 @@ from homeassistant.core_config import Config, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from idfm_api import IDFMApi
 from idfm_api.models import TransportType
 
+from .api_wrapper import MultiKeyIDFMApi
 from .const import (
     CONF_DESTINATION,
     CONF_DIRECTION,
@@ -53,7 +53,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     exclude_elevators = entry.data.get(CONF_EXCLUDE_ELEVATORS) or True
 
     session = async_get_clientsession(hass)
-    client = IDFMApi(session, entry.data.get(CONF_TOKEN), timeout=300)
+    tokens = entry.data.get(CONF_TOKEN).split(",")
+    client = MultiKeyIDFMApi(session, tokens, timeout=300)
 
     coordinator = IDFMDataUpdateCoordinator(
         hass,
@@ -92,7 +93,7 @@ class IDFMDataUpdateCoordinator(DataUpdateCoordinator):
     def __init__(
         self,
         hass: HomeAssistant,
-        client: IDFMApi,
+        client: MultiKeyIDFMApi,
         transport_type: str,
         line_id: str,
         stop_area_id: str,
