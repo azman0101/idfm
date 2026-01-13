@@ -4,9 +4,10 @@ from typing import Any, Dict, Optional
 import voluptuous as vol
 from aiohttp import ClientSession
 from homeassistant import config_entries
-from idfm_api import IDFMApi
 from idfm_api.dataset import Dataset
 from idfm_api.models import TransportType
+
+from .api_wrapper import MultiKeyIDFMApi
 
 from .const import (
     CONF_DESTINATION,
@@ -46,7 +47,8 @@ class IDFMFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self.data[CONF_TOKEN] = user_input[CONF_TOKEN]
             self.data[CONF_EXCLUDE_ELEVATORS] = user_input[CONF_EXCLUDE_ELEVATORS]
             self.data[CONF_NB_ENTITIES] = user_input[CONF_NB_ENTITIES]
-            self._client = IDFMApi(self._session, user_input[CONF_TOKEN], timeout=300)
+            tokens = user_input[CONF_TOKEN].split(",")
+            self._client = MultiKeyIDFMApi(self._session, tokens, timeout=300)
             return await self.async_step_transport()
 
         return self.async_show_form(
