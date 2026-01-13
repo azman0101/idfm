@@ -12,6 +12,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from idfm_api.models import TransportType
+from .topology import LineTopology
 
 from .api_wrapper import MultiKeyIDFMApi
 from .const import (
@@ -110,8 +111,26 @@ class IDFMDataUpdateCoordinator(DataUpdateCoordinator):
         self.destination = destination
         self.exclude_elevators = exclude_elevators
         self.platforms = []
+        self.topology = LineTopology(client)
+
+        # We need the pure STIF ID for topology checks
+        # stop_area_id is usually STIF:StopPoint:Q:xxxx: or similar
+        # We extract the bare ID for comparison if needed
+        self.stop_id_simple = self._extract_stif_id(stop_area_id)
+        self.destination_simple = self._extract_stif_id(destination) if destination else None
 
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL)
+
+    def _extract_stif_id(self, full_id):
+        """Extract the numeric/code part of the ID."""
+        if not full_id:
+            return None
+        # Example: STIF:StopPoint:Q:43114: -> 43114
+        # OR STIF:StopArea:SP:66834: -> 66834
+        try:
+            return full_id.split(":")[-2]
+        except IndexError:
+            return full_id
 
     async def async_update(self):
         await self._async_update_data()
@@ -130,9 +149,47 @@ class IDFMDataUpdateCoordinator(DataUpdateCoordinator):
                 or (d.hour < 1 or d.hour > 5)
                 or (d.hour == 5 and d.minute >= 30)
             ):
+                # If we have a configured "Destination Stop" (new logic), we ask for ALL traffic
+                # by passing destination=None.
+                # If we have legacy Direction/Destination config, we keep using it.
+
+                # Check if self.destination looks like a Stop ID (STIF:...) or a Name
+                # The config flow now saves IDs for new configs.
+
+                req_destination = self.destination
+                req_direction = self.direction
+
+                use_topology = False
+                if self.destination and "STIF:" in self.destination:
+                    use_topology = True
+                    req_destination = None # Fetch all
+                    req_direction = None   # Fetch all
+
                 tr = await self.api.get_traffic(
-                    self.stop_area_id, self.destination, self.direction, self.line_id
+                    self.stop_area_id, req_destination, req_direction, self.line_id
                 )
+
+                # Topology filtering
+                if use_topology and self.destination_simple:
+                    # Fetch topology (cached)
+                    topo_data = await self.topology.get_ordered_stops(self.line_id)
+
+                    filtered_tr = []
+                    for train in tr:
+                        # Extract Terminus ID from train
+                        # train.destination_id is usually STIF:StopPoint:Q:xxxx:
+                        terminus_id_simple = self._extract_stif_id(train.destination_id)
+
+                        # Check if configured destination is served
+                        if self.topology.check_stop_on_path(
+                            topo_data,
+                            self.stop_id_simple,
+                            self.destination_simple,
+                            terminus_id_simple
+                        ):
+                            filtered_tr.append(train)
+                    tr = filtered_tr
+
                 # Filter past schedules
                 utcd = datetime.utcnow().replace(tzinfo=timezone.utc)
                 sorted_tr = sorted(

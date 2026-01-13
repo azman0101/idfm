@@ -154,32 +154,38 @@ class IDFMFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is None:
             user_input = {}
 
+        stops = await self._client.get_stops(self.data[CONF_LINE])
+        stop_map = {s.name + " - " + s.city: (s.exchange_area_id or s.stop_id) for s in stops}
+
         if CONF_DIRECTION in user_input:
             self.data[CONF_DIRECTION] = None
             self.data[CONF_DESTINATION] = None
-            if user_input[CONF_DIRECTION][0:3] == "Dir":
+
+            # If user selected "any", we keep it as is (no filtering)
+            if user_input[CONF_DIRECTION] == "any":
+                pass
+            # Check if input matches a Stop Name (Target Stop logic)
+            elif user_input[CONF_DIRECTION] in stop_map:
+                # Store the ID of the target stop as "destination"
+                # The coordinator will treat this ID as a "Target Stop" for topology filtering
+                self.data[CONF_DESTINATION] = stop_map[user_input[CONF_DIRECTION]]
+            # Fallback for old "Dir:" or "Dest:" format (should not appear with new list but good for safety)
+            elif user_input[CONF_DIRECTION][0:3] == "Dir":
                 self.data[CONF_DIRECTION] = user_input[CONF_DIRECTION][5:]
             elif user_input[CONF_DIRECTION][0:3] == "Des":
                 self.data[CONF_DESTINATION] = user_input[CONF_DIRECTION][6:]
 
             return self.async_create_entry(
-                title=self.data[CONF_LINE_NAME] + " - " + self.data[CONF_STOP_NAME],
+                title=self.data[CONF_LINE_NAME] + " -> " + user_input[CONF_DIRECTION],
                 data=self.data,
             )
 
-        directions = await self._client.get_directions(
-            self.data[CONF_STOP],
-            line_id=self.data[CONF_LINE],
-        )
-        destinations = await self._client.get_destinations(
-            self.data[CONF_STOP],
-            line_id=self.data[CONF_LINE],
-        )
-        directions = (
-            ["Dir: " + x for x in directions if x is not None]
-            + ["Dest: " + x for x in destinations if x is not None]
-            + ["any"]
-        )
+        # Build list of potential destinations (all stops on the line)
+        # We filter out the starting stop to avoid "Vincennes -> Vincennes"
+        destinations = ["any"] + sorted([
+            name for name, sid in stop_map.items()
+            if sid != self.data[CONF_STOP]
+        ])
 
         return self.async_show_form(
             step_id="direction",
@@ -187,8 +193,8 @@ class IDFMFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(
                         CONF_DIRECTION,
-                        default=user_input.get(CONF_DIRECTION) or directions[0],
-                    ): vol.In(sorted(directions))
+                        default=user_input.get(CONF_DIRECTION) or destinations[0],
+                    ): vol.In(destinations)
                 }
             ),
             errors={},
