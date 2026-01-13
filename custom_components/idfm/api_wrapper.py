@@ -2,8 +2,8 @@
 import logging
 from typing import List, Optional
 
-from idfm_api import IDFMApi, RequestError
-from idfm_api.models import TrafficData, InfoData, ReportData, LineData, StopData, TransportType
+from .idfm_api import IDFMApi, RequestError
+from .idfm_api.models import TrafficData, InfoData, ReportData, LineData, StopData, TransportType
 
 _LOGGER = logging.getLogger(__name__)
 

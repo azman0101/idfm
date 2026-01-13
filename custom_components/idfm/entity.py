@@ -1,6 +1,6 @@
 """IDFMEntity class"""
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from idfm_api.attribution import (
+from .idfm_api.attribution import (
     IDFM_API_LICENCE,
     IDFM_API_LICENCE_LINK,
     IDFM_API_LINK,

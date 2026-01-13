@@ -7,7 +7,7 @@ Cette intégration utilise la librairie `idfm-api` pour communiquer avec les ser
 Ces appels nécessitent une clé d'API (token) configurée dans l'intégration.
 
 ### 1. Temps Réel (Stop Monitoring)
-Récupère les prochains passages pour un arrêt donné.
+Récupère les prochains passages pour un arrêt donné..
 - **URL**: `https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring`
 - **Méthode**: `GET`
 - **Paramètres**:
