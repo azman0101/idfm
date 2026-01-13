@@ -1,8 +1,9 @@
 """Adds config flow for IDFM Integration"""
+import json
 from typing import Any, Dict, Optional
 
 import voluptuous as vol
-from aiohttp import ClientSession
+from aiohttp import ClientError, ClientSession
 from homeassistant import config_entries
 from idfm_api.dataset import Dataset
 from idfm_api.models import TransportType
@@ -120,10 +121,16 @@ class IDFMFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors={},
         )
 
-    async def async_step_stop(self, user_input: Optional[Dict[str, Any]] = None):
+    async def async_step_stop(
+        self,
+        user_input: Optional[Dict[str, Any]] = None,
+        errors: Optional[Dict[str, Any]] = None,
+    ):
         """Fourth step in config flow to select a starting stop."""
         if user_input is None:
             user_input = {}
+        if errors is None:
+            errors = {}
 
         stops = await self._client.get_stops(self.data[CONF_LINE])
 
@@ -146,7 +153,7 @@ class IDFMFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     ): vol.In(sorted(names))
                 }
             ),
-            errors={},
+            errors=errors,
         )
 
     async def async_step_direction(self, user_input: Optional[Dict[str, Any]] = None):
@@ -167,14 +174,20 @@ class IDFMFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 data=self.data,
             )
 
-        directions = await self._client.get_directions(
-            self.data[CONF_STOP],
-            line_id=self.data[CONF_LINE],
-        )
-        destinations = await self._client.get_destinations(
-            self.data[CONF_STOP],
-            line_id=self.data[CONF_LINE],
-        )
+        try:
+            directions = await self._client.get_directions(
+                self.data[CONF_STOP],
+                line_id=self.data[CONF_LINE],
+            )
+            destinations = await self._client.get_destinations(
+                self.data[CONF_STOP],
+                line_id=self.data[CONF_LINE],
+            )
+        except (json.JSONDecodeError, ClientError):
+            return await self.async_step_stop(
+                errors={"base": "cannot_fetch_directions"}
+            )
+
         directions = (
             ["Dir: " + x for x in directions if x is not None]
             + ["Dest: " + x for x in destinations if x is not None]
