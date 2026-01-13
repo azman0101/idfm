@@ -4,8 +4,8 @@ from typing import Any, Dict, Optional
 import voluptuous as vol
 from aiohttp import ClientSession
 from homeassistant import config_entries
-from idfm_api.dataset import Dataset
-from idfm_api.models import TransportType
+from .idfm_api.dataset import Dataset
+from .idfm_api.models import TransportType
 
 from .api_wrapper import MultiKeyIDFMApi
 
